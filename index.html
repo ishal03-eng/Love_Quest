@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Quest for Palak</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom, #ff99cc, #ffe6f0);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      overflow: hidden;
+      touch-action: none;
+      cursor: url('https://img.icons8.com/fluency/24/000000/love-heart.png'), auto;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 70vh;
+      max-height: 600px;
+      border: 2px solid #ff4d94;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 1.5rem;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    #timer {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.5rem;
+      color: #fff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    #heart-progress {
+      position: absolute;
+      top: 40px;
+      left: 10px;
+      display: flex;
+      gap: 5px;
+    }
+    .heart-slot {
+      width: 20px;
+      height: 20px;
+      background: #ccc;
+      border-radius: 50%;
+      transition: background 0.5s ease;
+    }
+    .heart-slot.filled {
+      background: #ff4d94;
+      animation: heartPulse 1s infinite;
+    }
+    #hint-btn {
+      position: absolute;
+      top: 70px;
+      left: 10px;
+      font-size: 1rem;
+      background: #ff4d94;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      padding: 5px 10px;
+    }
+    #hint-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 10px #ff4d94;
+    }
+    #start-screen, #end-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #fff;
+    }
+    #start-screen h1, #end-screen h1 {
+      font-size: 2rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      animation: fadeIn 2s ease-in-out;
+    }
+    #subtitle {
+      font-size: 1rem;
+      font-style: italic;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      gap: 10px;
+    }
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      font-size: 1.2rem;
+      background: #ff4d94;
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      opacity: 0.8;
+      position: relative;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+    .control-btn:hover, .control-btn:active {
+      opacity: 1;
+      transform: scale(1.1);
+      box-shadow: 0 0 10px #ff4d94;
+    }
+    .control-btn::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 255, 255, 0.3);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.3s ease;
+    }
+    .control-btn:active::after {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .collectible {
+      animation: sparkle 1.5s infinite;
+    }
+    .collectible.near {
+      animation: sparkleFast 0.8s infinite;
+    }
+    @keyframes sparkle {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+    @keyframes sparkleFast {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.5); opacity: 1; }
+    }
+    @keyframes heartPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 768px) {
+      #game-container {
+        height: 60vh;
+      }
+      #score, #timer {
+        font-size: 1rem;
+      }
+      #heart-progress {
+        top: 30px;
+      }
+      #hint-btn {
+        top: 60px;
+        font-size: 0.9rem;
+      }
+      #start-screen h1, #end-screen h1 {
+        font-size: 1.5rem;
+      }
+      #start-screen p, #end-screen p, #subtitle {
+        font-size: 0.9rem;
+      }
+      .modal-dialog {
+        margin: 1rem;
+      }
+      .modal-content {
+        font-size: 0.9rem;
+      }
+      #controls {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div id="score">Items Found: 0/7</div>
+    <div id="timer">Time: 0s</div>
+    <div id="heart-progress"></div>
+    <button id="hint-btn" class="btn">Hint</button>
+    <canvas id="game-canvas"></canvas>
+    <div id="start-screen">
+      <div>
+        <h1>Love Quest for Palak</h1>
+        <p id="subtitle"></p>
+        <p>Find all seven treasures of our love with arrow keys/WASD or touch buttons!</p>
+        <button id="start-btn" class="btn btn-danger">Begin the Journey</button>
+      </div>
+    </div>
+    <div id="end-screen" style="display: none;">
+      <div>
+        <h1>Congratulations, Palak!</h1>
+        <p id="end-subtitle"></p>
+        <p>You found all our treasures!</p>
+        <button id="replay-btn" class="btn btn-danger">Play Again</button>
+      </div>
+    </div>
+    <div id="controls">
+      <button class="control-btn" id="btn-left">←</button>
+      <button class="control-btn" id="btn-right">→</button>
+      <button class="control-btn" id="btn-up">↑</button>
+      <button class="control-btn" id="btn-down">↓</button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="itemModal" tabindex="-1" aria-labelledby="itemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="itemModalLabel">A Treasure for Palak <span class="heart-icon">♥</span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="item-message"></p>
+          <p id="quote" style="font-style: italic; font-size: 0.9rem;"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="collect-sound" src="https://www.soundjay.com/buttons/button-09.mp3"></audio>
+  <audio id="bg-music" src="https://www.bensound.com/bensound-music/bensound-sweet.mp3" loop></audio>
+  <audio id="cloud-sound" src="https://www.soundjay.com/buttons/button-07.mp3"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const gameContainer = document.getElementById('game-container');
+    const startScreen = document.getElementById('start-screen');
+    const endScreen = document.getElementById('end-screen');
+    const startBtn = document.getElementById('start-btn');
+    const replayBtn = document.getElementById('replay-btn');
+    const scoreDisplay = document.getElementById('score');
+    const timerDisplay = document.getElementById('timer');
+    const heartProgress = document.getElementById('heart-progress');
+    const hintBtn = document.getElementById('hint-btn');
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnUp = document.getElementById('btn-up');
+    const btnDown = document.getElementById('btn-down');
+    const collectSound = document.getElementById('collect-sound');
+    const bgMusic = document.getElementById('bg-music');
+    const cloudSound = document.getElementById('cloud-sound');
+    let gameActive = false;
+    let score = 0;
+    let time = 0;
+    let timerInterval;
+    let hintActive = false;
+
+    function resizeCanvas() {
+      const maxWidth = window.innerWidth > 800 ? 800 : window.innerWidth - 20;
+      const aspectRatio = 4 / 3;
+      canvas.width = maxWidth;
+      canvas.height = maxWidth / aspectRatio;
+      if (canvas.height > window.innerHeight * 0.7) {
+        canvas.height = window.innerHeight * 0.7;
+        canvas.width = canvas.height * aspectRatio;
+      }
+      gameContainer.style.width = `${canvas.width}px`;
+      gameContainer.style.height = `${canvas.height}px`;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      width: 30,
+      height: 30,
+      speed: 5
+    };
+
+    const items = [
+      { x: 100, y: 100, message: "Our first chat on March 14, 2025, sparked my heart!", collected: false, type: 'heart' },
+      { x: 600, y: 200, message: "236 km apart, yet you're always in my thoughts.", collected: false, type: 'letter' },
+      { x: 200, y: 400, message: "Your laughter in our calls makes every moment brighter.", collected: false, type: 'heart' },
+      { x: 500, y: 500, message: "Our late-night talks are my favorite memories.", collected: false, type: 'letter' },
+      { x: 300, y: 300, message: "A ring for our future, Palak, forever my love.", collected: false, type: 'ring' },
+      { x: 400, y: 150, message: "Your kindness blooms like a flower in my heart.", collected: false, type: 'flower' },
+      { x: 250, y: 250, message: "Every message from you is a gift I cherish.", collected: false, type: 'gift' }
+    ];
+
+    const obstacles = [
+      { x: 200, y: 200, width: 40, height: 40 },
+      { x: 500, y: 300, width: 40, height: 40 }
+    ];
+
+    const clouds = [
+      { x: 100, y: 50, size: 50, speed: 0.5 },
+      { x: 400, y: 80, size: 70, speed: 0.3 },
+      { x: 600, y: 60, size: 60, speed: 0.4 }
+    ];
+
+    let particles = [];
+
+    const quotes = [
+      "You are my today and all of my tomorrows.",
+      "Distance means nothing when you mean everything.",
+      "Every moment with you is a treasure.",
+      "Your heart is my favorite place to be."
+    ];
+
+    // Initialize heart progress
+    for (let i = 0; i < 7; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'heart-slot';
+      heartProgress.appendChild(slot);
+    }
+
+    // Dynamic subtitle
+    function updateSubtitle() {
+      const subtitle = document.getElementById('subtitle');
+      const endSubtitle = document.getElementById('end-subtitle');
+      const quote = quotes[Math.floor(Math.random() * quotes.length)];
+      subtitle.textContent = quote;
+      endSubtitle.textContent = quote;
+      gsap.fromTo(subtitle, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1 });
+      gsap.fromTo(endSubtitle, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 1 });
+    }
+    updateSubtitle();
+    setInterval(updateSubtitle, 5000);
+
+    const keys = {};
+    document.addEventListener('keydown', (e) => { keys[e.key] = true; });
+    document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
+    btnLeft.addEventListener('touchend', () => { keys['ArrowLeft'] = false; });
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
+    btnRight.addEventListener('touchend', () => { keys['ArrowRight'] = false; });
+    btnUp.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowUp'] = true; });
+    btnUp.addEventListener('touchend', () => { keys['ArrowUp'] = false; });
+    btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowDown'] = true; });
+    btnDown.addEventListener('touchend', () => { keys['ArrowDown'] = false; });
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      clouds.forEach(cloud => {
+        if (Math.hypot(clickX - cloud.x, clickY - cloud.y) < cloud.size / 2) {
+          cloudSound.play();
+          createHeartParticles(cloud.x, cloud.y);
+        }
+      });
+    });
+
+    hintBtn.addEventListener('click', () => {
+      hintActive = true;
+      gsap.to(hintBtn, { scale: 0.9, duration: 0.2, yoyo: true, repeat: 1 });
+      setTimeout(() => { hintActive = false; }, 3000);
+    });
+
+    function resetGame() {
+      score = 0;
+      time = 0;
+      scoreDisplay.textContent = `Items Found: ${score}/7`;
+      timerDisplay.textContent = `Time: ${time}s`;
+      document.querySelectorAll('.heart-slot').forEach((slot, i) => {
+        slot.classList.remove('filled');
+      });
+      items.forEach(item => { item.collected = false; });
+      player.x = canvas.width / 2;
+      player.y = canvas.height / 2;
+      keys['ArrowLeft'] = false;
+      keys['ArrowRight'] = false;
+      keys['ArrowUp'] = false;
+      keys['ArrowDown'] = false;
+      keys['a'] = false;
+      keys['d'] = false;
+      keys['w'] = false;
+      keys['s'] = false;
+      particles = [];
+      clearInterval(timerInterval);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawScene();
+      bgMusic.currentTime = 0;
+      bgMusic.play();
+      updateSubtitle();
+    }
+
+    startBtn.addEventListener('click', () => {
+      startScreen.style.display = 'none';
+      resetGame();
+      gameActive = true;
+      timerInterval = setInterval(() => {
+        time++;
+        timerDisplay.textContent = `Time: ${time}s`;
+      }, 1000);
+      gsap.to(startBtn, { scale: 0.9, duration: 0.2, yoyo: true, repeat: 1 });
+      requestAnimationFrame(gameLoop);
+    });
+
+    replayBtn.addEventListener('click', () => {
+      endScreen.style.display = 'none';
+      resetGame();
+      gameActive = true;
+      timerInterval = setInterval(() => {
+        time++;
+        timerDisplay.textContent = `Time: ${time}s`;
+      }, 1000);
+      gsap.to(replayBtn, { scale: 0.9, duration: 0.2, yoyo: true, repeat: 1 });
+      requestAnimationFrame(gameLoop);
+    });
+
+    function drawScene() {
+      // Parallax background
+      ctx.fillStyle = '#90EE90';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#78DA78';
+      ctx.fillRect(0, canvas.height / 2 - 50 - player.y * 0.05, canvas.width, 100);
+      // Draw clouds
+      clouds.forEach(cloud => {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, cloud.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+        cloud.x += cloud.speed;
+        if (cloud.x > canvas.width + cloud.size) cloud.x = -cloud.size;
+      });
+      // Draw obstacles
+      obstacles.forEach(obstacle => {
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(obstacle.x * canvas.width / 800, obstacle.y * canvas.height / 600, obstacle.width, obstacle.height);
+      });
+      // Draw player
+      ctx.fillStyle = '#ff4d94';
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y - player.height / 2);
+      ctx.quadraticCurveTo(player.x - player.width / 2, player.y - player.height, player.x - player.width, player.y);
+      ctx.quadraticCurveTo(player.x - player.width / 2, player.y + player.height / 2, player.x, player.y + player.height);
+      ctx.quadraticCurveTo(player.x + player.width / 2, player.y + player.height / 2, player.x + player.width, player.y);
+      ctx.quadraticCurveTo(player.x + player.width / 2, player.y - player.height, player.x, player.y - player.height / 2);
+      ctx.fill();
+      // Draw items
+      items.forEach(item => {
+        if (!item.collected) {
+          const scaledX = item.x * canvas.width / 800;
+          const scaledY = item.y * canvas.height / 600;
+          const isNear = Math.hypot(player.x - scaledX, player.y - scaledY) < 100;
+          if (hintActive) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(scaledX, scaledY, 20, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          if (item.type === 'heart') {
+            ctx.fillStyle = isNear ? '#ff6666' : '#ff1a1a';
+            ctx.beginPath();
+            ctx.moveTo(scaledX, scaledY - 10);
+            ctx.quadraticCurveTo(scaledX - 15, scaledY - 20, scaledX - 30, scaledY);
+            ctx.quadraticCurveTo(scaledX - 15, scaledY + 15, scaledX, scaledY + 20);
+            ctx.quadraticCurveTo(scaledX + 15, scaledY + 15, scaledX + 30, scaledY);
+            ctx.quadraticCurveTo(scaledX + 15, scaledY - 20, scaledX, scaledY - 10);
+            ctx.fill();
+          } else if (item.type === 'letter') {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(scaledX - 15, scaledY - 15, 30, 20);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(scaledX - 15, scaledY - 15, 30, 20);
+          } else if (item.type === 'ring') {
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(scaledX, scaledY, 10 * canvas.width / 800, 0, Math.PI * 2);
+            ctx.stroke();
+          } else if (item.type === 'flower') {
+            ctx.fillStyle = isNear ? '#ff99cc' : '#ff69b4';
+            ctx.beginPath();
+            ctx.arc(scaledX, scaledY, 10, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (item.type === 'gift') {
+            ctx.fillStyle = isNear ? '#ff6666' : '#ff4040';
+            ctx.fillRect(scaledX - 15, scaledY - 15, 30, 30);
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(scaledX - 5, scaledY - 20, 10, 20);
+          }
+        }
+      });
+      // Draw particles
+      particles.forEach(p => {
+        ctx.fillStyle = `hsl(${p.hue}, 100%, 50%)`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.size *= 0.95;
+      });
+      particles = particles.filter(p => p.size > 0.5);
+    }
+
+    function createConfetti(x, y) {
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: x * canvas.width / 800,
+          y: y * canvas.height / 600,
+          size: Math.random() * 5 + 2,
+          vx: (Math.random() - 0.5) * 8,
+          vy: (Math.random() - 0.5) * 8,
+          hue: Math.random() * 360
+        });
+      }
+    }
+
+    function createHeartParticles(x, y) {
+      for (let i = 0; i < 10; i++) {
+        particles.push({
+          x: x,
+          y: y,
+          size: Math.random() * 3 + 1,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          hue: 0
+        });
+      }
+    }
+
+    function checkCollisions() {
+      items.forEach(item => {
+        if (!item.collected) {
+          const scaledX = item.x * canvas.width / 800;
+          const scaledY = item.y * canvas.height / 600;
+          if (Math.abs(player.x - scaledX) < 30 && Math.abs(player.y - scaledY) < 30) {
+            item.collected = true;
+            score++;
+            scoreDisplay.textContent = `Items Found: ${score}/7`;
+            document.querySelectorAll('.heart-slot')[score - 1].classList.add('filled');
+            showMessage(item.message);
+            collectSound.play();
+            gsap.to(canvas, { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 });
+            if (item.type === 'ring') {
+              createConfetti(item.x, item.y); // Special effect for ring
+            }
+            if (score === 7) { // End game only when all 7 items are collected
+              createConfetti(player.x, player.y);
+              gameActive = false;
+              clearInterval(timerInterval);
+              endScreen.style.display = 'flex';
+              bgMusic.pause();
+            }
+          }
+        }
+      });
+      obstacles.forEach(obstacle => {
+        const scaledX = obstacle.x * canvas.width / 800;
+        const scaledY = obstacle.y * canvas.height / 600;
+        if (
+          player.x + player.width > scaledX &&
+          player.x < scaledX + obstacle.width &&
+          player.y + player.height > scaledY &&
+          player.y < scaledY + obstacle.height
+        ) {
+          player.x = Math.max(scaledX - player.width, Math.min(player.x, scaledX + obstacle.width));
+          player.y = Math.max(scaledY - player.height, Math.min(player.y, scaledY + obstacle.height));
+        }
+      });
+    }
+
+    function showMessage(message) {
+      document.getElementById('item-message').textContent = message;
+      document.getElementById('quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+      const modal = new bootstrap.Modal(document.getElementById('itemModal'));
+      gsap.fromTo('.modal-content', { y: -50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5 });
+      modal.show();
+      gsap.to('.heart-icon', { scale: 1.2, duration: 0.5, yoyo: true, repeat: -1 });
+    }
+
+    function gameLoop() {
+      if (!gameActive) return;
+
+      if (keys['ArrowLeft'] || keys['a']) player.x = Math.max(0, player.x - player.speed);
+      if (keys['ArrowRight'] || keys['d']) player.x = Math.min(canvas.width - player.width, player.x + player.speed);
+      if (keys['ArrowUp'] || keys['w']) player.y = Math.max(0, player.y - player.speed);
+      if (keys['ArrowDown'] || keys['s']) player.y = Math.min(canvas.height - player.height, player.y + player.speed);
+
+      gsap.to(player, { x: player.x, y: player.y, duration: 0.1 });
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawScene();
+      checkCollisions();
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
